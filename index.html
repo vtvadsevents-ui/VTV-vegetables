@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#16813b"><title>VTV Vegetables</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f8f2;color:#173b20}
+.wrap{max-width:650px;margin:auto;padding:14px 14px 100px}header{background:#16813b;color:#fff;position:sticky;top:0;z-index:5}
+.brand{font-size:25px;font-weight:800}.sub{font-size:13px;opacity:.92;margin-top:4px}
+.search{width:100%;padding:13px;border:1px solid #ccd8ce;border-radius:12px;font-size:16px;margin:4px 0 14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card,.box{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 10px #0001}
+.emoji{font-size:42px}.name{font-weight:700;margin:6px 0}.price{font-weight:800;color:#16813b;font-size:18px}.unit{font-size:12px;color:#667}
+button{border:0;border-radius:10px;padding:10px 12px;background:#16813b;color:#fff;font-weight:700}
+.row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #eee}
+input,textarea{width:100%;padding:12px;border:1px solid #ccd8ce;border-radius:10px;margin:6px 0 10px;font-size:15px}
+.pay{display:flex;gap:8px}.pay label{flex:1;border:1px solid #ccd8ce;border-radius:10px;padding:12px;text-align:center}
+.note{font-size:12px;color:#666}.success{background:#e8f7eb;border-radius:12px;padding:14px;margin-top:12px;display:none}
+.cartbar{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:12px;border-top:1px solid #ddd;display:flex;justify-content:center}
+.cartbar button{width:min(620px,94vw);font-size:16px}.empty{text-align:center;padding:20px;color:#777}
+</style></head>
+<body>
+<header><div class="wrap" style="padding:16px 14px"><div class="brand">🥦 VTV Vegetables</div>
+<div class="sub">Fresh Vegetables • Door Delivery • Aruvankadu Barracks</div></div></header>
+<main class="wrap">
+<input class="search" id="search" placeholder="🔍 Search vegetables..." oninput="render()">
+<div class="grid" id="products"></div>
+<section><h2>🛒 Your Cart</h2><div class="box" id="cart"></div></section>
+<section><h2>📦 Delivery Details</h2><div class="box">
+<label>Name</label><input id="name" placeholder="Customer name">
+<label>Mobile Number</label><input id="phone" placeholder="10-digit mobile number" inputmode="numeric">
+<label>Delivery Address</label><textarea id="address" rows="3" placeholder="House / Street / Area"></textarea>
+<label>Payment Method</label><div class="pay">
+<label><input type="radio" name="payment" value="UPI"> UPI</label>
+<label><input type="radio" name="payment" value="COD" checked> Cash on Delivery</label></div>
+<p class="note">UPI ID: <b>vtvadsevents@okhdfcbank</b></p>
+<button style="width:100%;margin-top:10px" onclick="placeOrder()">Place Order</button>
+<div class="success" id="success"></div></div></section></main>
+<div class="cartbar"><button onclick="document.getElementById('cart').scrollIntoView({behavior:'smooth'})">🛒 View Cart • <span id="barTotal">₹0</span></button></div>
+<script src="products.js"></script>
+<script>
+let cart={};
+function render(){const q=document.getElementById('search').value.toLowerCase();
+document.getElementById('products').innerHTML=PRODUCTS.filter(p=>p.name.toLowerCase().includes(q)).map(p=>
+'<div class="card"><div class="emoji">'+p.image+'</div><div class="name">'+p.name+'</div><div class="price">₹'+p.price+
+'</div><div class="unit">'+p.unit+'</div><button style="margin-top:10px;width:100%" onclick="add('+PRODUCTS.indexOf(p)+')">Add to Cart</button></div>').join('')
+||'<div class="empty">No vegetables found.</div>';updateCart()}
+function add(i){cart[i]=(cart[i]||0)+1;updateCart()}
+function change(i,d){cart[i]=(cart[i]||0)+d;if(cart[i]<=0)delete cart[i];updateCart()}
+function updateCart(){let total=0,html='';for(const i in cart){const p=PRODUCTS[i],q=cart[i],v=p.price*q;total+=v;
+html+='<div class="row"><span>'+p.image+' '+p.name+'<br><small>'+p.unit+' × '+q+'</small></span><span>₹'+v+
+'<br><button onclick="change('+i+',-1)">−</button> <button onclick="change('+i+',1)">+</button></span></div>'}
+document.getElementById('cart').innerHTML=html||'<div class="empty">Your cart is empty.</div>';
+document.getElementById('barTotal').textContent='₹'+total}
+function placeOrder(){if(!Object.keys(cart).length){alert('Please add vegetables to cart.');return}
+const name=document.getElementById('name').value.trim(),phone=document.getElementById('phone').value.trim(),address=document.getElementById('address').value.trim();
+if(!name||!phone||!address){alert('Please fill Name, Mobile Number and Address.');return}
+const payment=document.querySelector('input[name=payment]:checked').value;let total=0,lines=[];
+for(const i in cart){const p=PRODUCTS[i],q=cart[i];total+=p.price*q;lines.push(p.name+' - '+p.unit+' x '+q)}
+const order='VTV-'+Date.now().toString().slice(-6);
+const msg=encodeURIComponent('VTV Vegetables Order '+order+'\nName: '+name+'\nPhone: '+phone+'\nAddress: '+address+'\nPayment: '+payment+'\nItems:\n'+lines.join('\n')+'\nTotal: ₹'+total);
+const s=document.getElementById('success');s.style.display='block';
+s.innerHTML='<b>Order: '+order+'</b><br>Total: ₹'+total+'<br><br><a href="https://wa.me/919488778524?text='+msg+'" target="_blank"><button>📲 Send Order on WhatsApp</button></a><br><br>'+
+(payment==='UPI'?'<a href="#" onclick="payUPI('+total+');return false"><button>💳 Pay via UPI</button></a>':'<span class="note">Cash on Delivery selected.</span>')}
+function payUPI(amount){location.href='upi://pay?pa='+encodeURIComponent('vtvadsevents@okhdfcbank')+'&pn='+encodeURIComponent('VTV Vegetables')+'&am='+amount.toFixed(2)+'&cu=INR'}
+render();
+</script></body></html>
